@@ -107,14 +107,16 @@ const count = document.createElement('span');
 const next = document.createElement('button'); next.className = 'button primary'; next.type = 'button';
 const launch = document.createElement('a'); launch.className = 'button primary'; launch.textContent = '공식 시스템 시작하기 ↗'; launch.href = 'https://www.goedu.kr'; launch.target = '_blank'; launch.rel = 'noopener noreferrer';
 controls.append(previous,count,next,launch);
-const note = document.createElement('p'); note.className = 'wizard-note'; note.textContent = '단계를 눌러 안내를 살펴보세요. 이 진행 표시는 실제 가입 완료 여부와 무관합니다.';
+const note = document.createElement('p'); note.className = 'wizard-note'; note.textContent = '‘다음 단계’를 눌러 순서대로 확인하세요. 열어 본 단계는 다시 선택할 수 있습니다. 체크는 안내 확인 표시이며 실제 가입 완료를 뜻하지 않습니다.';
 const shortTitles = ['원패스 준비','클라우드 가입','서비스 선택','사용 시작'];
 let currentStep = 0;
+let unlockedStep = 0;
 const stepButtons = stepItems.map((item,index) => {
   const button = document.createElement('button'); button.type = 'button'; button.setAttribute('aria-controls',panel.id);
   button.addEventListener('click',() => showStep(index)); stepNav.append(button); return button;
 });
 function showStep(index) {
+  if (index < 0 || index > unlockedStep || index >= stepItems.length) return;
   const direction = index >= currentStep ? 1 : -1;
   currentStep = index;
   stepButtons.forEach((button,i) => {
@@ -122,7 +124,8 @@ function showStep(index) {
     const text = document.createElement('span'); text.textContent = shortTitles[i]; button.append(number,text);
     button.classList.toggle('passed',i < index);
     if (i === index) button.setAttribute('aria-current','step'); else button.removeAttribute('aria-current');
-    button.setAttribute('aria-label',`${i+1}단계 ${shortTitles[i]}${i === index ? ', 현재 단계' : ''}`);
+    button.disabled = i > unlockedStep;
+    button.setAttribute('aria-label',`${i+1}단계 ${shortTitles[i]}${i === index ? ', 현재 단계' : i > unlockedStep ? ', 이전 안내 확인 후 열림' : ', 다시 보기'}`);
   });
   progress.value = index + 1;
   const content = stepItems[index].cloneNode(true); content.querySelector('.step-number').remove();
@@ -134,7 +137,12 @@ function showStep(index) {
   next.textContent = index === 2 ? '마지막 안내 →' : '다음 단계 →';
 }
 previous.addEventListener('click',() => showStep(Math.max(0,currentStep-1)));
-next.addEventListener('click',() => {showStep(Math.min(3,currentStep+1)); if(currentStep===3) launch.focus({preventScroll:true});});
+next.addEventListener('click',() => {
+  const nextStep = Math.min(stepItems.length - 1,currentStep + 1);
+  unlockedStep = Math.max(unlockedStep,nextStep);
+  showStep(nextStep);
+  if (currentStep === stepItems.length - 1) launch.focus({preventScroll:true});
+});
 wizard.append(stepNav,progress,panel,controls,note); stepList.replaceWith(wizard); showStep(0);
 
 document.querySelectorAll('.tool-card').forEach(card => {
