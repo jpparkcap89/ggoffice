@@ -18,6 +18,17 @@ GitHub Pages: Settings → Pages → Deploy from a branch → main / (root).
 파일: `index.html`(내용), `styles.css`(디자인), `app.js`(상호작용), `favicon.svg`.
 폰트는 Google Fonts에서 불러오며, 실패하면 시스템 글꼴로 표시합니다.
 
+## 인터랙션 디자인
+
+Lucian Labs UX/UI Prompt(https://lucianlabs.dev/uxui-prompt/)의 인터랙션 패턴을 참고해 이 사이트에 맞게 구현했습니다. 원본 코드 복사나 설치 없이 작성한 구현입니다.
+
+- Glass Hero: Hero 전체에 반투명 표면, 그라데이션, 유리 테두리와 깊이감 적용
+- Step Wizard: 단계 선택, 이전/다음, 진행선, 본문 전환. 가입 완료 상태가 아닌 안내 진행 표시
+- FAQ Accordion: 질문 강조 및 한 번에 하나씩 펼치기
+- Command Search: Ctrl/Cmd+K, 방향키 선택, Enter 이동, Esc 닫기
+- Expandable Cards: PC에서는 2열 너비로 확장, 모바일에서는 세로로 상세 내용 펼치기
+- 모션 감소 설정에서는 전환 애니메이션 해제. JavaScript 비활성 시 원래 4단계 목록 유지
+
 ## 내용 유지 관리
 
 공식 안내 확인일: 2026-10-22

@@ -65,6 +65,7 @@ function renderSearch() {
       event.preventDefault(); dialog.close();
       const destination = document.querySelector(item.target);
       if (destination.tagName === 'DETAILS') destination.open = true;
+      if (destination.classList.contains('tool-card')) destination.querySelector('details').open = true;
       destination.setAttribute('tabindex','-1'); destination.focus({preventScroll:true}); destination.scrollIntoView({block:'start'});
     }); results.append(link);
   });
@@ -74,3 +75,77 @@ document.querySelector('#open-search').addEventListener('click',openSearch);
 document.querySelector('#close-search').addEventListener('click',() => dialog.close());
 searchInput.addEventListener('input',renderSearch);
 document.addEventListener('keydown',event => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {event.preventDefault(); openSearch();} });
+
+// A keyboard command palette: keep native links and their Enter/Tab behavior.
+const searchHint = dialog.querySelector('small');
+searchHint.textContent = '↑ ↓ 선택 · Enter 이동 · Esc 닫기 · Ctrl / ⌘ K 검색';
+dialog.addEventListener('keydown', event => {
+  if (!['ArrowDown','ArrowUp','Enter'].includes(event.key)) return;
+  const links = [...results.querySelectorAll('a')];
+  if (!links.length) return;
+  const current = links.indexOf(document.activeElement);
+  if (event.key === 'Enter') {
+    if (document.activeElement === searchInput) { event.preventDefault(); links[0].click(); }
+    return;
+  }
+  if (document.activeElement !== searchInput && current < 0) return;
+  event.preventDefault();
+  const next = current < 0 ? (event.key === 'ArrowDown' ? 0 : links.length - 1) : (current + (event.key === 'ArrowDown' ? 1 : -1) + links.length) % links.length;
+  links[next].focus();
+});
+
+// Progressive enhancement: the original ordered guide remains usable without JS.
+const stepList = document.querySelector('.steps');
+const stepItems = [...stepList.children];
+const wizard = document.createElement('div'); wizard.className = 'wizard';
+const stepNav = document.createElement('div'); stepNav.className = 'wizard-nav'; stepNav.setAttribute('aria-label','가입 안내 단계 선택');
+const progress = document.createElement('progress'); progress.max = 4; progress.setAttribute('aria-label','안내 읽기 진행');
+const panel = document.createElement('div'); panel.className = 'wizard-panel'; panel.id = 'wizard-panel'; panel.setAttribute('aria-live','polite');
+const controls = document.createElement('div'); controls.className = 'wizard-controls';
+const previous = document.createElement('button'); previous.textContent = '← 이전'; previous.className = 'button secondary'; previous.type = 'button';
+const count = document.createElement('span');
+const next = document.createElement('button'); next.className = 'button primary'; next.type = 'button';
+const launch = document.createElement('a'); launch.className = 'button primary'; launch.textContent = '공식 시스템 시작하기 ↗'; launch.href = 'https://www.goedu.kr'; launch.target = '_blank'; launch.rel = 'noopener noreferrer';
+controls.append(previous,count,next,launch);
+const note = document.createElement('p'); note.className = 'wizard-note'; note.textContent = '단계를 눌러 안내를 살펴보세요. 이 진행 표시는 실제 가입 완료 여부와 무관합니다.';
+const shortTitles = ['원패스 준비','클라우드 가입','서비스 선택','사용 시작'];
+let currentStep = 0;
+const stepButtons = stepItems.map((item,index) => {
+  const button = document.createElement('button'); button.type = 'button'; button.setAttribute('aria-controls',panel.id);
+  button.addEventListener('click',() => showStep(index)); stepNav.append(button); return button;
+});
+function showStep(index) {
+  const direction = index >= currentStep ? 1 : -1;
+  currentStep = index;
+  stepButtons.forEach((button,i) => {
+    button.replaceChildren(); const number = document.createElement('b'); number.textContent = i < index ? '✓' : String(i+1);
+    const text = document.createElement('span'); text.textContent = shortTitles[i]; button.append(number,text);
+    button.classList.toggle('passed',i < index);
+    if (i === index) button.setAttribute('aria-current','step'); else button.removeAttribute('aria-current');
+    button.setAttribute('aria-label',`${i+1}단계 ${shortTitles[i]}${i === index ? ', 현재 단계' : ''}`);
+  });
+  progress.value = index + 1;
+  const content = stepItems[index].cloneNode(true); content.querySelector('.step-number').remove();
+  const eyebrow = document.createElement('span'); eyebrow.className = 'eyebrow'; eyebrow.textContent = `STEP 0${index+1}`;
+  panel.replaceChildren(eyebrow,...content.childNodes);
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) panel.animate([{opacity:0,transform:`translateX(${direction*18}px)`},{opacity:1,transform:'translateX(0)'}],{duration:260,easing:'ease-out'});
+  previous.disabled = index === 0; next.hidden = index === 3; launch.hidden = index !== 3;
+  count.textContent = `${index+1} / 4`;
+  next.textContent = index === 2 ? '마지막 안내 →' : '다음 단계 →';
+}
+previous.addEventListener('click',() => showStep(Math.max(0,currentStep-1)));
+next.addEventListener('click',() => {showStep(Math.min(3,currentStep+1)); if(currentStep===3) launch.focus({preventScroll:true});});
+wizard.append(stepNav,progress,panel,controls,note); stepList.replaceWith(wizard); showStep(0);
+
+document.querySelectorAll('.tool-card').forEach(card => {
+  const details = card.querySelector('details');
+  const summary = details.querySelector('summary');
+  summary.textContent = '활용 가이드 펼치기';
+  details.addEventListener('toggle',() => {
+    summary.textContent = details.open ? '활용 가이드 접기' : '활용 가이드 펼치기';
+    card.classList.toggle('expanded',details.open);
+  });
+});
+document.querySelectorAll('.faq-list details').forEach(item => {
+  item.name = 'help-accordion';
+});
